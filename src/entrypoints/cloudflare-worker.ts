@@ -83,7 +83,7 @@ async function verifySignature(request: Request, env: Env): Promise<boolean> {
 }
 
 // Command handlers - implemented directly without Discord.js dependencies
-async function handleTrackCommand(interaction: any, env: Env) {
+const handleTrackCommand = async (interaction: any, env: Env) => {
   const userOption = interaction.data.options?.find(
     (opt: any) => opt.name === 'user',
   );
@@ -99,7 +99,13 @@ async function handleTrackCommand(interaction: any, env: Env) {
 
   if (!userOption || !stat || !operation) {
     return {
-      content: 'Missing required parameters!',
+      embeds: [
+        {
+          title: '❌ Error',
+          description: 'Missing required parameters!',
+          color: 0xff0000,
+        },
+      ],
       flags: 64, // Ephemeral
     };
   }
@@ -108,11 +114,10 @@ async function handleTrackCommand(interaction: any, env: Env) {
   const points = operation === 'add' ? amount : -amount;
   const giverId =
     interaction.member?.user?.id || interaction.user?.id || 'system';
-
-  // Extract usernames from the interaction
-  const receiverUsername = userOption.user?.username || userOption.user?.global_name;
-  const giverUsername = interaction.member?.user?.username || interaction.user?.username || 
-                       interaction.member?.user?.global_name || interaction.user?.global_name;
+  const giverName =
+    interaction.member?.user?.username ||
+    interaction.user?.username ||
+    'System';
 
   try {
     await addUserPointsWorker(
@@ -121,29 +126,51 @@ async function handleTrackCommand(interaction: any, env: Env) {
       giverId,
       stat,
       points,
-      `${operation} ${amount} by command`,
-      receiverUsername,
-      giverUsername
+      `${operation === 'add' ? 'Added' : 'Subtracted'} by ${giverName}`,
     );
 
+    const actionText = operation === 'add' ? 'added' : 'subtracted';
+
     return {
-      content: `Successfully ${operation === 'add' ? 'added' : 'subtracted'} ${amount} ${getStatEmoji(stat)} ${stat} points ${operation === 'add' ? 'to' : 'from'} <@${userId}>!`,
+      embeds: [
+        {
+          title: '✅ Stats Updated',
+          description: `<@${giverId}> ${actionText} ${amount} ${getStatEmoji(stat)} ${stat} point${amount > 1 ? 's' : ''} ${operation === 'add' ? 'to' : 'from'} <@${userId}>`,
+          color: 0x00ff00,
+          timestamp: new Date().toISOString(),
+        },
+      ],
     };
   } catch (error) {
     console.error('Error in track command:', error);
     return {
-      content: 'Failed to update stats. Please try again.',
+      embeds: [
+        {
+          title: '❌ Error',
+          description: 'Failed to update stats. Please try again.',
+          color: 0xff0000,
+        },
+      ],
       flags: 64,
     };
   }
-}
+};
 
-async function handleWhoisCommand(interaction: any, env: Env) {
+const handleWhoisCommand = async (interaction: any, env: Env) => {
   const userOption = interaction.data.options?.find(
     (opt: any) => opt.name === 'user',
   );
   if (!userOption) {
-    return { content: 'User parameter required!', flags: 64 };
+    return {
+      embeds: [
+        {
+          title: '❌ Error',
+          description: 'User parameter required!',
+          color: 0xff0000,
+        },
+      ],
+      flags: 64,
+    };
   }
 
   const userId = userOption.value;
@@ -151,31 +178,51 @@ async function handleWhoisCommand(interaction: any, env: Env) {
   try {
     const stats = await getUserStatsWorker(env.DB, userId);
 
-    let description = '';
+    if (stats.length === 0) {
+      return {
+        embeds: [
+          {
+            title: '📊 User Stats',
+            description: `<@${userId}> has no tracked stats yet!`,
+            color: 0x0099ff,
+          },
+        ],
+      };
+    }
+
+    let description = `**User:** <@${userId}>\n\n`;
     for (const stat of stats) {
       const categoryName = String(stat.category_name);
-      description += `${getStatEmoji(categoryName)} ${categoryName}: ${stat.points}\n`;
+      const emoji = getStatEmoji(categoryName);
+      description += `${emoji} **${categoryName.charAt(0).toUpperCase() + categoryName.slice(1)}**: ${stat.points}\n`;
     }
 
     return {
       embeds: [
         {
-          title: `📊 Stats for <@${userId}>`,
-          description: description || 'No stats found!',
-          color: 0x5865f2,
+          title: '📊 User Stats',
+          description: description || 'No stats available.',
+          color: 0x0099ff,
+          timestamp: new Date().toISOString(),
         },
       ],
     };
   } catch (error) {
     console.error('Error in whois command:', error);
     return {
-      content: 'Failed to retrieve stats. Please try again.',
+      embeds: [
+        {
+          title: '❌ Error',
+          description: 'Sorry, there was an error retrieving the stats.',
+          color: 0xff0000,
+        },
+      ],
       flags: 64,
     };
   }
-}
+};
 
-async function handleLeaderboardCommand(interaction: any, env: Env) {
+const handleLeaderboardCommand = async (interaction: any, env: Env) => {
   const category = interaction.data.options?.find(
     (opt: any) => opt.name === 'category',
   )?.value;
@@ -187,16 +234,35 @@ async function handleLeaderboardCommand(interaction: any, env: Env) {
 
   try {
     const users = await getTopUsersWorker(env.DB, category, limit);
+
+    if (users.length === 0) {
+      const filterText = category ? ` for ${category}` : '';
+      return {
+        embeds: [
+          {
+            title: '🏆 Leaderboard',
+            description: `No users found${filterText}!`,
+            color: 0xffd700,
+          },
+        ],
+      };
+    }
+
     let description = '';
     users.forEach((user: any, index: number) => {
-      const medal = getRankMedal(index + 1);
-      // Display username if available, otherwise show Discord ID
-      const displayName = user.username || `User ${user.user_id}`;
-      description += `${medal} ${displayName}: ${user.points} points\n`;
+      const rank = index + 1;
+      const medal = getRankMedal(rank);
+      const emoji = getStatEmoji(user.category_name);
+
+      if (category) {
+        description += `${medal} **#${rank}** <@${user.user_id}> - ${user.points} points\n`;
+      } else {
+        description += `${medal} **#${rank}** <@${user.user_id}> - ${user.points} ${emoji} ${user.category_name}\n`;
+      }
     });
 
     const title = category
-      ? `🏆 ${getStatEmoji(category)} ${category} Leaderboard`
+      ? `🏆 ${category.charAt(0).toUpperCase() + category.slice(1)} Leaderboard`
       : '🏆 Overall Leaderboard';
 
     return {
@@ -205,19 +271,28 @@ async function handleLeaderboardCommand(interaction: any, env: Env) {
           title,
           description: description || 'No users found!',
           color: 0xffd700,
+          timestamp: new Date().toISOString(),
         },
       ],
     };
   } catch (error) {
     console.error('Error in leaderboard command:', error);
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error';
     return {
-      content: 'Failed to retrieve leaderboard. Please try again.',
+      embeds: [
+        {
+          title: '❌ Error',
+          description: `Sorry, there was an error retrieving the leaderboard: ${errorMessage}`,
+          color: 0xff0000,
+        },
+      ],
       flags: 64,
     };
   }
-}
+};
 
-async function handleHistoryCommand(interaction: any, env: Env) {
+const handleHistoryCommand = async (interaction: any, env: Env) => {
   const userOption = interaction.data.options?.find(
     (opt: any) => opt.name === 'user',
   );
@@ -231,7 +306,16 @@ async function handleHistoryCommand(interaction: any, env: Env) {
   );
 
   if (!userOption) {
-    return { content: 'User parameter required!', flags: 64 };
+    return {
+      embeds: [
+        {
+          title: '❌ Error',
+          description: 'User parameter required!',
+          color: 0xff0000,
+        },
+      ],
+      flags: 64,
+    };
   }
 
   const userId = userOption.value;
@@ -243,34 +327,79 @@ async function handleHistoryCommand(interaction: any, env: Env) {
       category,
       limit,
     );
-    let description = '';
-    history.forEach((entry: any) => {
-      const emoji = getStatEmoji(entry.category_name);
-      const date = new Date(entry.created_at).toLocaleDateString();
-      description += `${emoji} ${entry.category_name}: ${entry.amount > 0 ? '+' : ''}${entry.amount} - ${entry.reason || 'No reason'} (${date})\n`;
-    });
+
+    if (history.length === 0) {
+      const filterText = category ? ` for ${category}` : '';
+      return {
+        embeds: [
+          {
+            title: category
+              ? `📜 ${category.charAt(0).toUpperCase() + category.slice(1)} History`
+              : '📜 Point History',
+            description: `**User:** <@${userId}>\n\n<@${userId}> has no transaction history${filterText}!`,
+            color: 0x9932cc,
+          },
+        ],
+      };
+    }
 
     const title = category
-      ? `📈 ${getStatEmoji(category)} ${category} History for <@${userId}>`
-      : `📈 Point History for <@${userId}>`;
+      ? `📜 ${category.charAt(0).toUpperCase() + category.slice(1)} History`
+      : '📜 Point History';
+    const embedDescription = category
+      ? `**User:** <@${userId}>\n\nShowing recent ${category} transactions`
+      : `**User:** <@${userId}>\n\nShowing ${history.length} most recent transactions`;
+
+    // Build transaction list
+    let transactionList = '';
+    history.forEach((transaction: any) => {
+      const emoji = getStatEmoji(transaction.category_name);
+      const sign = transaction.amount >= 0 ? '+' : '';
+      const dateTime = new Date(transaction.created_at).toLocaleString();
+      const giverText =
+        transaction.giver_id === 'system'
+          ? 'System'
+          : `<@${transaction.giver_id}>`;
+
+      transactionList += `${emoji} **${sign}${transaction.amount}** ${transaction.category_name}\n`;
+      transactionList += `   From: ${giverText} • ${dateTime}\n`;
+      if (transaction.reason) {
+        transactionList += `   *${transaction.reason}*\n`;
+      }
+      transactionList += '\n';
+    });
 
     return {
       embeds: [
         {
           title,
-          description: description || 'No history found!',
-          color: 0x00ff00,
+          description: embedDescription,
+          color: 0x9932cc,
+          timestamp: new Date().toISOString(),
+          fields: [
+            {
+              name: 'Recent Transactions',
+              value: transactionList || 'No transactions found',
+              inline: false,
+            },
+          ],
         },
       ],
     };
   } catch (error) {
     console.error('Error in history command:', error);
     return {
-      content: 'Failed to retrieve history. Please try again.',
+      embeds: [
+        {
+          title: '❌ Error',
+          description: 'Sorry, there was an error retrieving the history.',
+          color: 0xff0000,
+        },
+      ],
       flags: 64,
     };
   }
-}
+};
 
 // Main worker export - this MUST be a default export for Cloudflare Workers
 export default {
@@ -320,7 +449,13 @@ export default {
             break;
           default:
             responseData = {
-              content: `Unknown command: ${interaction.data.name}`,
+              embeds: [
+                {
+                  title: '❌ Error',
+                  description: `Unknown command: ${interaction.data.name}`,
+                  color: 0xff0000,
+                },
+              ],
               flags: 64, // Ephemeral
             };
         }
@@ -341,7 +476,14 @@ export default {
           JSON.stringify({
             type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
             data: {
-              content: 'There was an error while executing this command!',
+              embeds: [
+                {
+                  title: '❌ Error',
+                  description:
+                    'There was an error while executing this command!',
+                  color: 0xff0000,
+                },
+              ],
               flags: 64, // Ephemeral
             },
           }),

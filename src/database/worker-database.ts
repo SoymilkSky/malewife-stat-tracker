@@ -1,8 +1,6 @@
 // Worker-specific database functions using native D1 bindings
 // These functions work directly with the D1Database from env.DB
 
-import { getStatEmoji, getRankMedal } from '../utils/utils';
-
 // Worker-specific database functions that use env.DB directly
 export async function addUserPointsWorker(
   db: D1Database,
@@ -11,34 +9,25 @@ export async function addUserPointsWorker(
   categoryName: string,
   amount: number,
   reason?: string,
-  receiverUsername?: string,
-  giverUsername?: string,
 ) {
   // First ensure both users exist and get their internal user_ids
-  // Insert or update users with usernames if provided
-  if (receiverUsername) {
-    await db
-      .prepare(`INSERT INTO users (discord_id, username) VALUES (?, ?) ON CONFLICT(discord_id) DO UPDATE SET username = ?`)
-      .bind(receiverDiscordId, receiverUsername, receiverUsername)
-      .run();
-  } else {
-    await db
-      .prepare(`INSERT OR IGNORE INTO users (discord_id) VALUES (?)`)
-      .bind(receiverDiscordId)
-      .run();
-  }
+  await db
+    .prepare(`INSERT OR IGNORE INTO users (discord_id) VALUES (?)`)
+    .bind(receiverDiscordId)
+    .run();
 
-  if (giverUsername) {
-    await db
-      .prepare(`INSERT INTO users (discord_id, username) VALUES (?, ?) ON CONFLICT(discord_id) DO UPDATE SET username = ?`)
-      .bind(giverDiscordId, giverUsername, giverUsername)
-      .run();
-  } else {
-    await db
-      .prepare(`INSERT OR IGNORE INTO users (discord_id) VALUES (?)`)
-      .bind(giverDiscordId)
-      .run();
-  }
+  await db
+    .prepare(`INSERT OR IGNORE INTO users (discord_id) VALUES (?)`)
+    .bind(giverDiscordId)
+    .run();
+
+  // Get internal user IDs
+  const receiver = await db
+    .prepare(`SELECT user_id FROM users WHERE discord_id = ?`)
+    .bind(receiverDiscordId)
+    .first();
+
+  const giver = await db
     .prepare(`SELECT user_id FROM users WHERE discord_id = ?`)
     .bind(giverDiscordId)
     .first();
@@ -112,7 +101,6 @@ export async function getTopUsersWorker(
   let query = `
     SELECT 
       u.discord_id as user_id,
-      u.username,
       pc.name as category_name,
       up.points
     FROM user_points up
@@ -133,6 +121,14 @@ export async function getTopUsersWorker(
 
   const stmt = db.prepare(query);
   const result = await stmt.bind(...params).all();
+
+  return result.results || [];
+}
+
+export async function getUserPointHistoryWorker(
+  db: D1Database,
+  discordId: string,
+  categoryName?: string,
   limit: number = 20,
 ) {
   let query = `
@@ -166,12 +162,11 @@ export async function getTopUsersWorker(
 }
 
 export async function initializeDatabaseWorker(db: D1Database) {
-  // Create users table with username column
+  // Create users table with separate discord_id
   await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       user_id INTEGER PRIMARY KEY AUTOINCREMENT,
       discord_id TEXT NOT NULL UNIQUE,
-      username TEXT,
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
   `);
