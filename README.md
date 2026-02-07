@@ -77,11 +77,13 @@ stat-bot/
 
 4. **Configure Environment Variables**
 
+   Create a `.env` file for local development:
+
    ```bash
    cp .env.example .env
    ```
 
-   Fill in your `.env` file:
+   **For Traditional Bot (.env file):**
 
    ```env
    # Discord Configuration
@@ -89,23 +91,31 @@ stat-bot/
    DISCORD_CLIENT_ID=your_discord_client_id
    DISCORD_GUILD_ID=your_server_guild_id
 
-   # Cloudflare Configuration
+   # Cloudflare Configuration (for database access)
    CLOUDFLARE_API_TOKEN=your_cloudflare_api_token
    CLOUDFLARE_ACCOUNT_ID=your_cloudflare_account_id
    CLOUDFLARE_DATABASE_ID=your_d1_database_id
-
-   # Additional for Cloudflare Worker hosting
-   DISCORD_APPLICATION_ID=your_discord_application_id
-   DISCORD_PUBLIC_KEY=your_discord_public_key
    ```
 
-5. **Initialize Database**
+   **For Cloudflare Worker (wrangler.toml [vars] section):**
+
+   ```toml
+   [vars]
+   DISCORD_APPLICATION_ID = "your_discord_application_id"
+   DISCORD_PUBLIC_KEY = "your_discord_public_key"
+   DISCORD_TOKEN = "your_discord_bot_token"
+   ```
+
+   **Where to find these values:**
+   - **Application ID**: Discord Developer Portal > General Information
+   - **Public Key**: Discord Developer Portal > General Information (**NOT** the bot token!)
+   - **Bot Token**: Discord Developer Portal > Bot > Token
 
    ```bash
    npm run init-db
    ```
 
-6. **Deploy Commands**
+5. **Deploy Commands**
 
    ```bash
    npm run build
@@ -124,7 +134,106 @@ npm run dev
 
 ### Option 2: Cloudflare Worker (Webhooks)
 
-SerHosting Options
+Serverless, scales automatically, recommended for production:
+
+```bash
+# Initial setup - configure wrangler.toml with your Discord credentials
+npm run build
+npm run worker:deploy
+```
+
+Your worker will be deployed to: `https://stat-bot.YOUR-SUBDOMAIN.workers.dev`
+
+**⚠️ Important**: After deployment, you must configure Discord to use your Worker URL:
+
+1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
+2. Select your application → **General Information**
+3. Set **Interactions Endpoint URL** to your Worker URL
+4. Discord will verify the endpoint - it must respond correctly or be rejected
+
+**Note**: For Cloudflare Worker hosting, you need to configure the Discord webhook URL in your Discord Developer Portal to point to your Worker endpoint.
+
+## Deployment
+
+### Cloudflare Worker Setup (Recommended)
+
+1. **Configure wrangler.toml**
+
+   ```toml
+   [vars]
+   DISCORD_APPLICATION_ID = "your_application_id"
+   DISCORD_PUBLIC_KEY = "your_public_key"
+   DISCORD_TOKEN = "your_bot_token"
+   ```
+
+2. **Deploy Worker**
+
+   ```bash
+   npm run build
+   npm run worker:deploy
+   ```
+
+3. bash
+
+# Development
+
+npm run dev # Run traditional Discord bot
+npm run build # Compile TypeScript to dist/
+
+# Database
+
+npm run init-db # Initialize database tables (traditional hosting)
+
+# Discord Commands
+
+npm run deploy-commands # Register slash commands with Discord
+
+# Cloudflare Worker
+
+npm run worker:dev # Test worker locally (with wrangler dev)
+npm run worker:deploy # Deploy worker to production
+
+# Utilities
+
+npm audit # Security audit
+
+```
+
+### File Structure Notes
+
+- **dist/**: Compiled JavaScript output (ignored by git)
+- **src/entrypoints/**: Different hosting entry points
+- **src/database/**: Database functions (traditional) and worker-database functions (Cloudflare)
+- **wrangler.toml**: Cloudflare Worker configuration with environment variables
+   npm run deploy-commands  # Register slash commands with Discord
+```
+
+### Traditional Bot Deployment
+
+1. **Set up environment variables** in your hosting platform
+2. **Build and run**:
+   ```bash
+   npm run build
+   npm run dev  # or use PM2 for production
+   ```
+
+### Important Notes
+
+- **Never run both hosting methods simultaneously** - choose one
+- **Worker requires webhook setup** in Discord Developer Portal
+- **Traditional bot requires always-on server** but simpler setup
+- **Commands must be deployed** with `npm run deploy-commands` after changes
+
+## Database Schema
+
+The bot uses a normalized database structure:
+
+- **users**: Stores Discord user IDs with internal user_id
+- **point_categories**: Available stat categories
+- **user_points**: Current point totals per user/category
+- **point_transactions**: Complete history of all point changes
+
+## Hosting Options
 
 ### Traditional Bot Hosting
 
@@ -139,6 +248,7 @@ SerHosting Options
 - **Connection**: Discord Webhooks (HTTP)
 - **Scaling**: Automatic, serverless
 - **Best For**: Production, high availability, cost efficiency
+- **Live Example**: Successfully deployed at `https://stat-bot.danny-96-wong.workers.dev`
 
 ## Development
 

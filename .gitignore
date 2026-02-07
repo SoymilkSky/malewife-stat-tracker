@@ -1,3 +1,19 @@
 .env
-node_modules
+node_modules/
+dist/
+.wrangler/
+*.log
+
+# Environment files
+.env.local
+.env.production
+
+# Build outputs
+build/
+out/
+
+# Runtime data
+logs/
+
+# Configuration files
 wrangler.toml

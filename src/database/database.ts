@@ -1,7 +1,16 @@
-// Configuration - you'll need to set these environment variables
-const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
-const CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
-const CLOUDFLARE_DATABASE_ID = process.env.CLOUDFLARE_DATABASE_ID;
+// Configuration - environment variables will be passed from Worker env
+// These will be undefined in Worker context and should be passed as parameters
+const isWorkerEnvironment = typeof process === 'undefined';
+
+let CLOUDFLARE_API_TOKEN: string | undefined;
+let CLOUDFLARE_ACCOUNT_ID: string | undefined;
+let CLOUDFLARE_DATABASE_ID: string | undefined;
+
+if (!isWorkerEnvironment) {
+  CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
+  CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
+  CLOUDFLARE_DATABASE_ID = process.env.CLOUDFLARE_DATABASE_ID;
+}
 
 export interface Database {
   prepare(query: string): Statement;
@@ -272,25 +281,33 @@ export const addUserPoints = async (
 
   // Insert or update user_points
   const existingPoints = await db
-    .prepare(`SELECT points FROM user_points WHERE user_id = ? AND category_id = ?`)
+    .prepare(
+      `SELECT points FROM user_points WHERE user_id = ? AND category_id = ?`,
+    )
     .bind(receiverUserId, categoryId)
     .first();
 
   if (existingPoints) {
     await db
-      .prepare(`UPDATE user_points SET points = points + ? WHERE user_id = ? AND category_id = ?`)
+      .prepare(
+        `UPDATE user_points SET points = points + ? WHERE user_id = ? AND category_id = ?`,
+      )
       .bind(amount, receiverUserId, categoryId)
       .run();
   } else {
     await db
-      .prepare(`INSERT INTO user_points (user_id, category_id, points) VALUES (?, ?, ?)`)
+      .prepare(
+        `INSERT INTO user_points (user_id, category_id, points) VALUES (?, ?, ?)`,
+      )
       .bind(receiverUserId, categoryId, amount)
       .run();
   }
 
   // Add transaction record
   await db
-    .prepare(`INSERT INTO point_transactions (receiver_id, giver_id, category_id, amount, reason) VALUES (?, ?, ?, ?, ?)`)
+    .prepare(
+      `INSERT INTO point_transactions (receiver_id, giver_id, category_id, amount, reason) VALUES (?, ?, ?, ?, ?)`,
+    )
     .bind(receiverUserId, giverUserId, categoryId, amount, reason)
     .run();
 };
