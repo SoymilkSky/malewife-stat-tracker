@@ -10,6 +10,31 @@ A Discord bot for tracking and displaying user statistics with a fun twist! Trac
 - **Transaction History**: See detailed point history with reasons and timestamps
 - **Slash Commands**: Modern Discord slash command interface
 - **Cloud Database**: Powered by Cloudflare D1 for reliable data storage
+- **Multiple Hosting Options**: Traditional Discord bot or serverless Cloudflare Worker
+
+## Project Structure
+
+```
+stat-bot/
+├── src/
+│   ├── entrypoints/              # Different hosting entry points
+│   │   ├── discord-bot.ts        # Traditional Discord gateway bot
+│   │   └── cloudflare-worker.ts  # Cloudflare Worker webhook handler
+│   ├── database/                 # Database connection and operations
+│   │   └── database.ts           # Database interface and functions
+│   ├── utils/                    # Shared utilities
+│   │   └── utils.ts              # Helper functions and constants
+│   └── commands/                 # Discord slash commands
+│       └── stat-tracker/         # Stat tracking commands
+│           ├── track.ts
+│           ├── whois.ts
+│           ├── leaderboard.ts
+│           └── history.ts
+├── scripts/                      # Build and deployment scripts
+│   └── deploy-commands.ts        # Discord command registration
+├── dist/                         # Compiled output (created on build)
+└── config files...               # package.json, tsconfig.json, etc.
+```
 
 ## Commands
 
@@ -68,6 +93,10 @@ A Discord bot for tracking and displaying user statistics with a fun twist! Trac
    CLOUDFLARE_API_TOKEN=your_cloudflare_api_token
    CLOUDFLARE_ACCOUNT_ID=your_cloudflare_account_id
    CLOUDFLARE_DATABASE_ID=your_d1_database_id
+
+   # Additional for Cloudflare Worker hosting
+   DISCORD_APPLICATION_ID=your_discord_application_id
+   DISCORD_PUBLIC_KEY=your_discord_public_key
    ```
 
 5. **Initialize Database**
@@ -80,42 +109,72 @@ A Discord bot for tracking and displaying user statistics with a fun twist! Trac
 
    ```bash
    npm run build
-   npx tsx deploy-commands.ts
+   npm run deploy-commands
    ```
 
-7. **Start the Bot**
-   ```bash
-   npm run dev
-   ```
+## Running the Bot
 
-## Database Schema
+### Option 1: Traditional Discord Bot (Gateway)
 
-The bot uses a normalized database structure:
+Perfect for development and smaller deployments:
 
-- **users**: Stores Discord user IDs with internal user_id
-- **point_categories**: Available stat categories
-- **user_points**: Current point totals per user/category
-- **point_transactions**: Complete history of all point changes
+```bash
+npm run dev
+```
 
-## Deployment
+### Option 2: Cloudflare Worker (Webhooks)
 
-### Cloudflare Workers (Recommended)
+SerHosting Options
 
-1. Configure `wrangler.toml` with your database binding
-2. Deploy using Wrangler:
-   ```bash
-   wrangler publish
-   ```
+### Traditional Bot Hosting
 
-### Traditional VPS/Server
+- **Entry Point**: [src/entrypoints/discord-bot.ts](src/entrypoints/discord-bot.ts)
+- **Connection**: Discord Gateway (WebSocket)
+- **Scaling**: Manual server management
+- **Best For**: Development, small servers, always-on hosting
 
-1. Build the project: `npm run build`
-2. Use a process manager like PM2
-3. Ensure environment variables are set
+### Cloudflare Worker Hosting (Recommended)
 
-## Security Features
+- **Entry Point**: [src/entrypoints/cloudflare-worker.ts](src/entrypoints/cloudflare-worker.ts)
+- **Connection**: Discord Webhooks (HTTP)
+- **Scaling**: Automatic, serverless
+- **Best For**: Production, high availability, cost efficiency
 
-- ✅ SQL injection protection via parameterized queries
+## Development
+
+Available npm scripts:
+
+````bash
+# Development
+npm run dev              # Run traditional Discord bot
+npm run build           # Compile TypeScript to dist/
+
+# Database
+np Configuration
+
+### Stat Categories
+
+Default categories are: `malewife`, `manipulate`, `mansplain`, `gaslight`, `gatekeep`, `girlboss`
+
+To modify categories, update the `categories` array in [src/database/database.ts](src/database/database.ts) and run the database initialization.
+
+### Permissions
+
+Currently, any server member can track stats for others. Consider implementing role-based permissions for production use.
+
+### Environment Variables
+
+The bot requires different environment variables depending on hosting method:
+
+**Both hosting methods:**
+- `DISCORD_TOKEN` - Bot token from Discord Developer Portal
+- `DISCORD_CLIENT_ID` - Application ID from Discord Developer Portal
+- `DISCORD_GUILD_ID` - Your Discord server ID
+- Database configuration via `wrangler.toml`
+
+**Cloudflare Worker only:**
+- `DISCORD_APPLICATION_ID` - Same as client ID (for webhooks)
+- `DISCORD_PUBLIC_KEY` - For webhook signature verification
 - ✅ Environment variable isolation
 - ✅ Self-action prevention (users can't modify their own stats)
 - ✅ Input validation through Discord's slash command system
@@ -138,31 +197,37 @@ npm audit
 
 # Deploy commands to Discord
 npx tsx deploy-commands.ts
-```
+````
 
 ## Configuration
 
 ### Stat Categories
 
-Default categories are: `malewife`, `manipulate`, `mansplain`, `gaslight`, `gatekeep`, `girlboss`
+DefSecurity Features
 
-To modify categories, update the `categories` array in [database.ts](database.ts) and run the database initialization.
+- ✅ SQL injection protection via parameterized queries
+- ✅ Environment variable isolation
+- ✅ Self-action prevention (users can't modify their own stats)
+- ✅ Input validation through Discord's slash command system
+- ✅ HTTPS communication with Cloudflare APIs
+- ✅ Webhook signature verification (Cloudflare Worker hosting)
 
-### Permissions
+## Troubleshooting
 
-Currently, any server member can track stats for others. Consider implementing role-based permissions for production use.
+### Common Issues
 
-## Contributing
+**Build Errors**: Ensure all import paths are correct after the reorganization
+**Command Registration**: Run `npm run deploy-commands` after any command changes  
+**Database Issues**: Verify your D1 database configuration in `wrangler.toml`
+**Worker Deployment**: Ensure webhook URL is configured in Discord Developer Portal
 
-1. Fork the repository
-2. Create a feature branch
-3. Run `npm audit` to check for security issues
-4. Test your changes thoroughly
-5. Submit a pull request
+### Support
 
-## License
-
-MIT License - see LICENSE file for details
+- Check the console logs for detailed error messages
+- Ensure all environment variables are correctly formatted
+- Verify Discord bot permissions include "Use Slash Commands"
+- Test database connectivity with `npm run ini
+  MIT License - see LICENSE file for details
 
 ## Support
 
@@ -178,3 +243,14 @@ Built with:
 - [Discord.js](https://discord.js.org/) - Discord API wrapper
 - [Cloudflare D1](https://developers.cloudflare.com/d1/) - Serverless SQL database
 - [TypeScript](https://www.typescriptlang.org/) - Type-safe JavaScript
+  License
+
+MIT License - see LICENSE file for details
+
+## Acknowledgments
+
+Built with:
+
+- [Discord.js](https://discord.js.org/) - Discord API wrapper
+- [Cloudflare D1](https://developers.cloudflare.com/d1/) - Serverless SQL database
+- [Cloudflare Workers](https://workers.cloudflare.com/) - Serverless computing platform

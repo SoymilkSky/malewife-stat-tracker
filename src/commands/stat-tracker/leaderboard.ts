@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { getTopUsers } from '../../database';
-import { getRankMedal, getStatEmoji, statChoices } from '../../utils';
+import { getTopUsers } from '../../database/database';
+import { getRankMedal, getStatEmoji, statChoices } from '../../utils/utils';
 
 export const data = new SlashCommandBuilder()
   .setName('leaderboard')
@@ -58,7 +58,7 @@ export const execute = async (interaction: any) => {
         if (category) {
           description += `${medal} **#${rank}** ${username} - ${entry.points} points\n`;
         } else {
-          description += `${medal} **#${rank}** ${username} - ${entry.points} ${emoji} ${entry.category_name}\n`;
+          description += `${medal} **#${rank}** ${username} - ${entry.points} - ${emoji} - ${entry.category_name}\n`;
         }
       } catch (error) {
         // User account deleted or not found - use mention as fallback

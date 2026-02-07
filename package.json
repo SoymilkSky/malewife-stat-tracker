@@ -4,13 +4,14 @@
   "description": "tracks malewife manipulate mansplain stats amongs other things",
   "main": "index.js",
   "scripts": {
-    "test": "tsx test-db.ts",
-    "dev": "tsx index.ts",
+    "dev": "tsx src/entrypoints/discord-bot.ts",
     "build": "tsc",
-    "test-db": "tsx test-db.ts",
-    "init-db": "tsx -e \"import { initializeDatabase } from './db/db.ts'; initializeDatabase().then(() => console.log('Database initialized')).catch(console.error)\""
+    "init-db": "tsx -e \"import { initializeDatabase } from './src/database/database.ts'; initializeDatabase().then(() => console.log('Database initialized')).catch(console.error)\"",
+    "deploy-commands": "tsx scripts/deploy-commands.ts",
+    "worker:dev": "wrangler dev",
+    "worker:deploy": "wrangler deploy"
   },
-  "author": "soymilk",
+  "author": "soymilksky",
   "license": "MIT",
   "dependencies": {
     "discord.js": "^14.25.1",

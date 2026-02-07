@@ -7,7 +7,7 @@ dotenv.config();
 
 const commands = [];
 
-const foldersPath = path.join(__dirname, 'commands');
+const foldersPath = path.join(__dirname, '../src/commands');
 const commandFolders = fs.readdirSync(foldersPath);
 
 for (const folder of commandFolders) {
@@ -50,7 +50,6 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN!);
       `Successfully reloaded ${data.length} application (/) commands.`,
     );
   } catch (error) {
-    // And of course, make sure you catch and log any errors!
-    console.error(error);
+    console.error('Error as:', error);
   }
 })();

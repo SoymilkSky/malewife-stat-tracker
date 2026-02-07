@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { getUserStats } from '../../database';
-import { getStatEmoji } from '../../utils';
+import { getUserStats } from '../../database/database';
+import { getStatEmoji } from '../../utils/utils';
 
 export const data = new SlashCommandBuilder()
   .setName('whois')

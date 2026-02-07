@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { getUserPointHistory } from '../../database';
-import { getStatEmoji, statChoices } from '../../utils';
+import { getUserPointHistory } from '../../database/database';
+import { getStatEmoji, statChoices } from '../../utils/utils';
 
 export const data = new SlashCommandBuilder()
   .setName('history')

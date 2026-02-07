@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { addUserPoints } from '../../database';
-import { statChoices, operationChoices } from '../../utils';
+import { addUserPoints } from '../../database/database';
+import { statChoices, operationChoices } from '../../utils/utils';
 
 export const data = new SlashCommandBuilder()
   .setName('track')
