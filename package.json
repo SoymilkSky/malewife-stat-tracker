@@ -1,0 +1,30 @@
+{
+  "name": "malewife-stat-tracker",
+  "version": "1.0.0",
+  "description": "tracks malewife manipulate mansplain stats amongs other things",
+  "main": "index.js",
+  "scripts": {
+    "test": "tsx test-db.ts",
+    "dev": "tsx index.ts",
+    "build": "tsc",
+    "test-db": "tsx test-db.ts",
+    "init-db": "tsx -e \"import { initializeDatabase } from './db/db.ts'; initializeDatabase().then(() => console.log('Database initialized')).catch(console.error)\""
+  },
+  "author": "soymilk",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.25.1",
+    "dotenv": "^17.2.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260207.0",
+    "@eslint/js": "^9.39.2",
+    "@types/node": "^25.2.1",
+    "eslint": "^9.39.2",
+    "globals": "^17.3.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.54.0",
+    "wrangler": "^4.63.0"
+  }
+}
