@@ -354,13 +354,3 @@ Built with:
 - [Cloudflare D1](https://developers.cloudflare.com/d1/) - Serverless SQL database
 - [TypeScript](https://www.typescriptlang.org/) - Type-safe JavaScript
   License
-
-MIT License - see LICENSE file for details
-
-## Acknowledgments
-
-Built with:
-
-- [Discord.js](https://discord.js.org/) - Discord API wrapper
-- [Cloudflare D1](https://developers.cloudflare.com/d1/) - Serverless SQL database
-- [Cloudflare Workers](https://workers.cloudflare.com/) - Serverless computing platform
