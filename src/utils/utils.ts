@@ -15,7 +15,7 @@ export const getRankMedal = (rank: number): string => {
 
 export const getStatEmoji = (statType: string): string => {
   const emojiMap: { [key: string]: string } = {
-    malewife: '👨‍🍳',
+    malewife: '🫃',
     manipulate: '😈',
     mansplain: '🤓',
     gaslight: '🔥',
